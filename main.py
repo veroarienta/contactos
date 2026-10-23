@@ -8,7 +8,8 @@ Etapa 1: menú principal y administración de áreas.
 
 # Cada área se guarda como una tupla: (código, nombre).
 areas = []
-
+area_predeterminada = None
+tipo_telefono_predeterminado = None
 
 ############ FUNCIONES DE ÁREAS ####################
 
@@ -166,8 +167,85 @@ def menu_areas():
 ############ FUNCIONES PENDIENTES ####################
 
 def configuracion():
-    """Pendiente de implementación."""
-    print("Configuración: pendiente de implementación.")
+    """Permite configurar el área y tipo de teléfono predeterminados."""
+
+    global area_predeterminada, tipo_telefono_predeterminado
+
+    tipos_telefono = {
+        "M": "Móvil",
+        "C": "Casa",
+        "T": "Trabajo",
+        "O": "Otro"
+    }
+
+    while True:
+        print("\nCONFIGURACIÓN DE LISTA DE CONTACTOS")
+        print("1. Seleccionar área predeterminada")
+        print("2. Seleccionar tipo de teléfono predeterminado")
+        print("3. Consultar configuración actual")
+        print("0. Volver al menú principal")
+
+        opcion = input("Seleccione una opción: ").strip()
+
+        match opcion:
+            case "1":
+                if not areas:
+                    print("Primero debe registrar al menos un área.")
+                    continue
+
+                consultar_areas()
+                codigo = leer_codigo(
+                    "Código del área predeterminada: "
+                )
+                posicion = buscar_area(codigo)
+
+                if posicion == -1:
+                    print("Error: el área no existe.")
+                else:
+                    area_predeterminada = codigo
+                    print("Área predeterminada configurada.")
+
+            case "2":
+                print("\nTIPOS DE TELÉFONO")
+                for codigo, nombre in tipos_telefono.items():
+                    print(f"{codigo}. {nombre}")
+
+                tipo = input(
+                    "Seleccione el tipo predeterminado: "
+                ).strip().upper()
+
+                if tipo in tipos_telefono:
+                    tipo_telefono_predeterminado = tipo
+                    print("Tipo de teléfono configurado.")
+                else:
+                    print("Error: tipo de teléfono no válido.")
+
+            case "3":
+                print("\nCONFIGURACIÓN ACTUAL")
+
+                if area_predeterminada is None:
+                    print("Área predeterminada: no configurada.")
+                else:
+                    posicion = buscar_area(area_predeterminada)
+                    if posicion != -1:
+                        print(
+                            "Área predeterminada:",
+                            areas[posicion][1]
+                        )
+
+                if tipo_telefono_predeterminado is None:
+                    print("Tipo de teléfono: no configurado.")
+                else:
+                    print(
+                        "Tipo de teléfono:",
+                        tipos_telefono[tipo_telefono_predeterminado]
+                    )
+
+            case "0":
+                break
+
+            case _:
+                print("Opción no válida.")
 
 
 def menu_contactos():
