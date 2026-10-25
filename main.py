@@ -12,6 +12,8 @@ areas = []
 area_predeterminada = None
 tipo_telefono_predeterminado = None
 contactos = []
+grupos = []
+contactos_por_grupo = []
 
 ############ FUNCIONES DE ÁREAS ####################
 
@@ -576,8 +578,176 @@ def menu_contactos():
 
 
 def menu_grupos():
-    """Pendiente de implementación."""
-    print("Administración de grupos: pendiente de implementación.")
+ def buscar_grupo(nombre):
+    """Devuelve la posición de un grupo o -1 si no existe."""
+    for posicion, grupo in enumerate(grupos):
+        if grupo.casefold() == nombre.casefold():
+            return posicion
+    return -1
+
+
+def crear_grupo():
+    """Crea un grupo con un nombre único."""
+
+    nombre = input("Nombre del grupo (1-40 caracteres): ").strip()
+
+    if not 1 <= len(nombre) <= 40:
+        print("El nombre debe tener entre 1 y 40 caracteres.")
+        return
+
+    if buscar_grupo(nombre) != -1:
+        print("Ya existe un grupo con ese nombre.")
+        return
+
+    grupos.append(nombre)
+    contactos_por_grupo.append([])
+    print("Grupo creado correctamente.")
+
+
+def consultar_grupos():
+    """Muestra los grupos registrados y sus contactos."""
+
+    if not grupos:
+        print("No hay grupos registrados.")
+        return
+
+    for posicion, nombre in enumerate(grupos):
+        print(f"\nGrupo: {nombre}")
+
+        if not contactos_por_grupo[posicion]:
+            print("  Sin contactos asociados.")
+            continue
+
+        for telefono, codigo_area in contactos_por_grupo[posicion]:
+            pos = buscar_contacto(telefono, codigo_area)
+
+            if pos != -1:
+                print(f"  {contactos[pos][3]} - Teléfono: {telefono}")
+            else:
+                print(f"  Contacto no disponible - Teléfono: {telefono}")
+
+
+def agregar_contacto_a_grupo():
+    """Asocia un contacto existente a un grupo."""
+
+    if not grupos:
+        print("Primero debe crear un grupo.")
+        return
+
+    if not contactos:
+        print("Primero debe registrar un contacto.")
+        return
+
+    consultar_grupos()
+    nombre = input("\nNombre del grupo: ").strip()
+    posicion_grupo = buscar_grupo(nombre)
+
+    if posicion_grupo == -1:
+        print("No existe un grupo con ese nombre.")
+        return
+
+    consultar_areas()
+    telefono = leer_telefono()
+    codigo_area = leer_codigo("Código del área del contacto: ")
+
+    if buscar_contacto(telefono, codigo_area) == -1:
+        print("No existe un contacto con ese teléfono y área.")
+        return
+
+    referencia = (telefono, codigo_area)
+
+    if referencia in contactos_por_grupo[posicion_grupo]:
+        print("El contacto ya pertenece a ese grupo.")
+        return
+
+    contactos_por_grupo[posicion_grupo].append(referencia)
+    print("Contacto agregado al grupo correctamente.")
+
+
+def quitar_contacto_de_grupo():
+    """Quita un contacto de un grupo sin eliminarlo de la lista general."""
+
+    if not grupos:
+        print("No hay grupos registrados.")
+        return
+
+    consultar_grupos()
+    nombre = input("\nNombre del grupo: ").strip()
+    posicion_grupo = buscar_grupo(nombre)
+
+    if posicion_grupo == -1:
+        print("No existe un grupo con ese nombre.")
+        return
+
+    telefono = leer_telefono()
+    codigo_area = leer_codigo("Código del área del contacto: ")
+    referencia = (telefono, codigo_area)
+
+    if referencia not in contactos_por_grupo[posicion_grupo]:
+        print("Ese contacto no pertenece al grupo.")
+        return
+
+    contactos_por_grupo[posicion_grupo].remove(referencia)
+    print("Contacto quitado del grupo.")
+
+
+def eliminar_grupo():
+    """Elimina un grupo y su lista de asociaciones."""
+
+    if not grupos:
+        print("No hay grupos para eliminar.")
+        return
+
+    consultar_grupos()
+    nombre = input("\nNombre del grupo que desea eliminar: ").strip()
+    posicion = buscar_grupo(nombre)
+
+    if posicion == -1:
+        print("No existe un grupo con ese nombre.")
+        return
+
+    confirmacion = input(
+        f"¿Desea eliminar el grupo {grupos[posicion]}? (S/N): "
+    ).strip().upper()
+
+    if confirmacion == "S":
+        grupos.pop(posicion)
+        contactos_por_grupo.pop(posicion)
+        print("Grupo eliminado correctamente.")
+    else:
+        print("Operación cancelada.")
+
+
+def menu_grupos():
+    """Muestra el menú de administración de grupos."""
+
+    while True:
+        print("\nADMINISTRAR GRUPOS DE CONTACTOS")
+        print("1. Crear grupo")
+        print("2. Consultar grupos")
+        print("3. Agregar contacto a grupo")
+        print("4. Quitar contacto de grupo")
+        print("5. Eliminar grupo")
+        print("0. Volver al menú principal")
+
+        opcion = input("Seleccione una opción: ").strip()
+
+        match opcion:
+            case "1":
+                crear_grupo()
+            case "2":
+                consultar_grupos()
+            case "3":
+                agregar_contacto_a_grupo()
+            case "4":
+                quitar_contacto_de_grupo()
+            case "5":
+                eliminar_grupo()
+            case "0":
+                break
+            case _:
+                print("Opción no válida.")
+
 
 
 
