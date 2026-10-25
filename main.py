@@ -435,12 +435,127 @@ def agregar_contacto():
     contactos.append(contacto)
     print("Contacto registrado correctamente.")
 
-def menu_contactos():
-    """Muestra el menú de registro de contactos."""
+
+def modificar_contacto():
+    """Permite modificar los datos de un contacto."""
+
+    print("\nMODIFICAR CONTACTO")
+
+    if not contactos:
+        print("No hay contactos registrados.")
+        return
+
+    telefono = leer_telefono()
+    codigo_area = leer_codigo("Código del área del contacto: ")
+    posicion = buscar_contacto(telefono, codigo_area)
+
+    if posicion == -1:
+        print("No se encontró el contacto.")
+        return
+
+    contacto = contactos[posicion]
 
     while True:
-        print("\nREGISTRAR CONTACTOS")
+        print("\n¿Qué dato desea modificar?")
+        print("1. Nombre")
+        print("2. Tipo de teléfono")
+        print("3. Correo electrónico")
+        print("4. Dirección")
+        print("5. Fecha de nacimiento")
+        print("6. Pasatiempos")
+        print("7. Notas")
+        print("0. Terminar")
+
+        opcion = input("Seleccione una opción: ").strip()
+
+        match opcion:
+            case "1":
+                while True:
+                    nombre = input("Nuevo nombre: ").strip()
+                    if 1 <= len(nombre) <= 50:
+                        contacto[3] = nombre
+                        break
+                    print("El nombre debe tener entre 1 y 50 caracteres.")
+
+            case "2":
+                contacto[2] = leer_tipo_telefono()
+
+            case "3":
+                contacto[4] = leer_correo()
+
+            case "4":
+                direccion = input("Nueva dirección: ").strip()
+                if len(direccion) <= 80:
+                    contacto[5] = direccion
+                else:
+                    print("La dirección no puede superar 80 caracteres.")
+
+            case "5":
+                contacto[6] = leer_fecha()
+
+            case "6":
+                pasatiempos = input("Nuevos pasatiempos: ").strip()
+                if len(pasatiempos) <= 60:
+                    contacto[7] = pasatiempos
+                else:
+                    print("Máximo 60 caracteres.")
+
+            case "7":
+                notas = input("Nuevas notas: ").strip()
+                if len(notas) <= 60:
+                    contacto[8] = notas
+                else:
+                    print("Máximo 60 caracteres.")
+
+            case "0":
+                print("Modificación finalizada.")
+                return
+
+            case _:
+                print("Opción no válida.")
+
+
+def eliminar_contacto():
+    """Elimina un contacto seleccionado por teléfono y área."""
+
+    print("\nELIMINAR CONTACTO")
+
+    if not contactos:
+        print("No hay contactos registrados.")
+        return
+
+    telefono = leer_telefono()
+    codigo_area = leer_codigo("Código del área del contacto: ")
+    posicion = buscar_contacto(telefono, codigo_area)
+
+    if posicion == -1:
+        print("No se encontró el contacto.")
+        return
+
+    nombre = contactos[posicion][3]
+    confirmacion = input(
+        f"¿Desea eliminar a {nombre}? (S/N): "
+    ).strip().upper()
+
+    if confirmacion == "S":
+        contactos.pop(posicion)
+
+        # Si el contacto pertenece a grupos, también se quitará
+        # de ellos cuando implementemos esa funcionalidad.
+        print("Contacto eliminado correctamente.")
+    else:
+        print("Operación cancelada.")
+
+
+def menu_contactos():
+    """Muestra el menú de administración de contactos."""
+
+    while True:
+        print("\nADMINISTRACIÓN DE CONTACTOS")
         print("1. Agregar contacto")
+        print("2. Consultar contactos")
+        print("3. Modificar contacto")
+        print("4. Eliminar contacto")
         print("0. Volver al menú principal")
 
         opcion = input("Seleccione una opción: ").strip()
@@ -448,6 +563,12 @@ def menu_contactos():
         match opcion:
             case "1":
                 agregar_contacto()
+            case "2":
+                lista_contactos()
+            case "3":
+                modificar_contacto()
+            case "4":
+                eliminar_contacto()
             case "0":
                 break
             case _:
