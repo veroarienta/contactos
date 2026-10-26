@@ -969,8 +969,69 @@ def lista_contactos():
     generar_pdf(contactos_filtrados, tipos)
 
 def ayuda():
-    """Pendiente de implementación."""
-    print("Ayuda: pendiente de implementación.")
+
+
+    """Muestra el manual de usuario del programa."""
+
+    print("\n" + "=" * 55)
+    print("       MANUAL DE USUARIO")
+    print("       LISTA DIGITAL DE CONTACTOS")
+    print("=" * 55)
+
+    print("""
+
+DESCRIPCIÓN
+Este programa permite administrar áreas, configurar la lista
+de contactos, registrar contactos, crear grupos y consultar
+información mediante filtros.
+
+MENÚ PRINCIPAL
+1. Registrar áreas:
+   Permite agregar, consultar, modificar y eliminar áreas.
+
+2. Configuración de lista de contactos:
+   Permite establecer el área y el tipo de teléfono
+   predeterminados.
+
+3. Registrar contactos:
+   Permite agregar, consultar, modificar y eliminar contactos.
+
+4. Administrar grupos de contactos:
+   Permite crear grupos y administrar los contactos asociados.
+
+5. Lista de contactos:
+   Permite consultar los contactos mediante filtros y generar
+   un archivo PDF con los resultados.
+
+6. Ayuda:
+   Muestra este manual de usuario.
+
+7. Acerca de:
+   Muestra la información del programa y su autor.
+
+0. Fin:
+   Termina la ejecución del programa.
+
+USO DE LOS FILTROS
+Al consultar la lista de contactos, podés escribir un valor
+en los filtros disponibles o dejarlos vacíos para no filtrar
+por ese criterio.
+
+El símbolo % funciona como comodín para representar cero o más caracteres. Todas las búsquedas de texto en los filtros no distinguen entre mayúsculas y minúsculas, independientemente de si se utiliza el comodín o no.
+
+GENERACIÓN DE PDF
+Cuando una búsqueda encuentra contactos, el programa genera
+el archivo contactos.pdf en el directorio de ejecución.
+
+RECOMENDACIONES
+- Registrá las áreas antes de asignarlas a los contactos.
+- Verificá los datos antes de confirmar un registro.
+- Utilizá los filtros para localizar información específica.
+- Conservá una copia del archivo PDF cuando sea necesario.
+
+""")
+
+    input("Presioná Enter para volver al menú principal...")
 
 
 def acerca_de():
