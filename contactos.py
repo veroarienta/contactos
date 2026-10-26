@@ -23,6 +23,12 @@ tipo_telefono_predeterminado = None
 contactos = []
 grupos = []
 contactos_por_grupo = []
+TIPOS_TELEFONO = (
+    ("M", "Móvil"),
+    ("C", "Casa"),
+    ("T", "Trabajo"),
+    ("O", "Otro"),
+)
 
 ############ FUNCIONES DE ÁREAS ####################
 
@@ -123,10 +129,20 @@ def leer_tipo_telefono():
             "Tipo de teléfono: M=Móvil, C=Casa, T=Trabajo, O=Otro: "
         ).strip().upper()
 
-        if tipo in ("M", "C", "T", "O"):
+        if any(codigo == tipo for codigo, _ in TIPOS_TELEFONO):
             return tipo
 
         print("Error: seleccione M, C, T u O.")
+
+
+def nombre_tipo_telefono(tipo):
+    """Devuelve el nombre correspondiente al tipo de teléfono."""
+    for codigo, nombre in TIPOS_TELEFONO:
+        if codigo == tipo:
+            return nombre
+
+    return "Desconocido"
+
 
 def agregar_area():
     """Registra un área con código único y nombre válido."""
@@ -259,13 +275,6 @@ def configuracion():
 
     global area_predeterminada, tipo_telefono_predeterminado
 
-    tipos_telefono = {
-        "M": "Móvil",
-        "C": "Casa",
-        "T": "Trabajo",
-        "O": "Otro"
-    }
-
     while True:
         print("\nCONFIGURACIÓN DE LISTA DE CONTACTOS")
         print("1. Seleccionar área predeterminada")
@@ -295,14 +304,14 @@ def configuracion():
 
             case "2":
                 print("\nTIPOS DE TELÉFONO")
-                for codigo, nombre in tipos_telefono.items():
+                for codigo, nombre in TIPOS_TELEFONO:
                     print(f"{codigo}. {nombre}")
 
                 tipo = input(
                     "Seleccione el tipo predeterminado: "
                 ).strip().upper()
 
-                if tipo in tipos_telefono:
+                if nombre_tipo_telefono(tipo) != "Desconocido":
                     tipo_telefono_predeterminado = tipo
                     print("Tipo de teléfono configurado.")
                 else:
@@ -326,7 +335,7 @@ def configuracion():
                 else:
                     print(
                         "Tipo de teléfono:",
-                        tipos_telefono[tipo_telefono_predeterminado]
+                        nombre_tipo_telefono(tipo_telefono_predeterminado)
                     )
 
             case "0":
@@ -367,14 +376,7 @@ def agregar_contacto():
         print("Error: ya existe un contacto con ese teléfono y área.")
         return
 
-    tipos = {
-        "M": "Móvil",
-        "C": "Casa",
-        "T": "Trabajo",
-        "O": "Otro"
-    }
-
-    if tipo_telefono_predeterminado in tipos:
+    if nombre_tipo_telefono(tipo_telefono_predeterminado) != "Desconocido":
         sugerido = tipo_telefono_predeterminado
         entrada = input(
             f"Tipo de teléfono (M/C/T/O) [{sugerido}]: "
@@ -382,7 +384,7 @@ def agregar_contacto():
 
         if entrada == "":
             tipo = sugerido
-        elif entrada in tipos:
+        elif nombre_tipo_telefono(entrada) != "Desconocido":
             tipo = entrada
         else:
             print("Error: tipo de teléfono no válido.")
