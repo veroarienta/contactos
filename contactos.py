@@ -32,12 +32,35 @@ TIPOS_TELEFONO = (
 
 ############ FUNCIONES DE ÁREAS ####################
 
-def leer_codigo(mensaje="Código del área: "):
+def es_numero_ascii(valor):
+    """Indica si una cadena contiene únicamente dígitos ASCII."""
+    return valor.isascii() and valor.isdigit()
+
+
+def confirmar_dato(etiqueta, valor):
+    """Confirma un dato antes de guardarlo."""
+    while True:
+        opcion = input(
+            f"¿Aceptar {etiqueta} «{valor}»? (A=aceptar/C=cancelar): "
+        ).strip().upper()
+
+        if opcion == "A":
+            return True
+        if opcion == "C":
+            return False
+
+        print("Opción no válida. Escriba A para aceptar o C para cancelar.")
+
+
+def leer_codigo(mensaje="Código del área: ", permitir_cancelar=False):
     """Solicita un código entero entre 1 y 999."""
     while True:
         entrada = input(mensaje).strip()
 
-        if not entrada.isdigit():
+        if permitir_cancelar and entrada.upper() == "C":
+            return None
+
+        if not es_numero_ascii(entrada):
             print("Error: ingrese un número entero.")
             continue
 
@@ -67,21 +90,80 @@ def buscar_contacto(telefono, codigo_area):
     return -1
 
 
-def leer_telefono():
+def mostrar_contacto(contacto):
+    """Muestra todos los datos de un contacto."""
+    telefono, codigo_area, tipo, nombre, correo, direccion, fecha, pasatiempos, notas = contacto
+    posicion_area = buscar_area(codigo_area)
+    nombre_area = (
+        areas[posicion_area][1]
+        if posicion_area != -1
+        else "Área no disponible"
+    )
+
+    print(f"Nombre: {nombre}")
+    print(f"Teléfono: {telefono}")
+    print(f"Área: {nombre_area} (código {codigo_area})")
+    print(f"Tipo de teléfono: {nombre_tipo_telefono(tipo)}")
+    print(f"Correo: {correo}")
+    print(f"Dirección: {direccion}")
+    print(f"Fecha de nacimiento: {fecha}")
+    print(f"Pasatiempos: {pasatiempos}")
+    print(f"Notas: {notas}")
+
+
+def leer_telefono(permitir_cancelar=False):
     """Solicita un teléfono de entre 5 y 12 dígitos."""
     while True:
         telefono = input("Teléfono (5-12 dígitos): ").strip()
 
-        if telefono.isdigit() and 5 <= len(telefono) <= 12:
+        if permitir_cancelar and telefono.upper() == "C":
+            return None
+
+        if es_numero_ascii(telefono) and 5 <= len(telefono) <= 12:
             return telefono
 
         print("Error: el teléfono debe contener entre 5 y 12 dígitos.")
 
 
-def leer_correo():
+def leer_texto(mensaje, minimo, maximo, permitir_vacio=False,
+               valor_actual=None, permitir_cancelar=False):
+    """Lee texto con límites de longitud y opciones de conservar o cancelar."""
+    while True:
+        entrada = input(mensaje).strip()
+
+        if permitir_cancelar and entrada.upper() == "C":
+            return None
+
+        if entrada == "" and valor_actual is not None:
+            return valor_actual
+
+        if (permitir_vacio and entrada == "") or minimo <= len(entrada) <= maximo:
+            return entrada
+
+        if minimo == maximo:
+            print(f"El texto debe tener exactamente {minimo} caracteres.")
+        else:
+            print(f"El texto debe tener entre {minimo} y {maximo} caracteres.")
+
+
+def leer_correo(permitir_cancelar=False, valor_actual=None):
     """Valida un correo electrónico sin espacios."""
     while True:
-        correo = input("Correo electrónico: ").strip()
+        mensaje = "Correo electrónico"
+        if valor_actual is not None:
+            mensaje += " (Enter=conservar"
+            if permitir_cancelar:
+                mensaje += "/C=volver"
+            mensaje += ")"
+        elif permitir_cancelar:
+            mensaje += " (C=cancelar)"
+        correo = input(f"{mensaje}: ").strip()
+
+        if permitir_cancelar and correo.upper() == "C":
+            return None
+
+        if correo == "" and valor_actual is not None:
+            return valor_actual
 
         if re.fullmatch(r"[^\s@]+@[^\s@]+", correo):
             return correo
@@ -89,14 +171,23 @@ def leer_correo():
         print("Error: ingrese un correo válido, sin espacios.")
 
 
-def leer_fecha():
+def leer_fecha(permitir_cancelar=False, valor_actual=None):
     """Solicita una fecha válida o 0 si se desconoce."""
     from datetime import date
 
     while True:
-        fecha = input(
-            "Fecha de nacimiento (dd/mm/aaaa o 0 si se desconoce): "
-        ).strip()
+        mensaje = "Fecha de nacimiento (dd/mm/aaaa o 0 si se desconoce"
+        if valor_actual is not None:
+            mensaje += ", Enter=conservar"
+        if permitir_cancelar:
+            mensaje += ", C=volver" if valor_actual is not None else ", C=cancelar"
+        fecha = input(f"{mensaje}): ").strip()
+
+        if permitir_cancelar and fecha.upper() == "C":
+            return None
+
+        if fecha == "" and valor_actual is not None:
+            return valor_actual
 
         if fecha == "0":
             return fecha
@@ -108,7 +199,7 @@ def leer_fecha():
             and len(partes[0]) == 2
             and len(partes[1]) == 2
             and len(partes[2]) == 4
-            and all(parte.isdigit() for parte in partes)
+            and all(es_numero_ascii(parte) for parte in partes)
         ):
             dia, mes, año = map(int, partes)
             año_validacion = año if año != 0 else 2000
@@ -122,12 +213,22 @@ def leer_fecha():
         print("Error: ingrese una fecha válida o escriba 0.")
 
 
-def leer_tipo_telefono():
+def leer_tipo_telefono(permitir_cancelar=False, valor_actual=None,
+                       codigo_cancelacion="0"):
     """Solicita un tipo de teléfono válido."""
     while True:
-        tipo = input(
-            "Tipo de teléfono: M=Móvil, C=Casa, T=Trabajo, O=Otro: "
-        ).strip().upper()
+        mensaje = "Tipo de teléfono: M=Móvil, C=Casa, T=Trabajo, O=Otro"
+        if valor_actual is not None:
+            mensaje += ", Enter=conservar"
+        if permitir_cancelar:
+            mensaje += f", {codigo_cancelacion}=cancelar"
+        tipo = input(f"{mensaje}: ").strip().upper()
+
+        if permitir_cancelar and tipo == codigo_cancelacion:
+            return None
+
+        if tipo == "" and valor_actual is not None:
+            return valor_actual
 
         if any(codigo == tipo for codigo, _ in TIPOS_TELEFONO):
             return tipo
@@ -148,26 +249,40 @@ def agregar_area():
     """Registra un área con código único y nombre válido."""
     print("\nAGREGAR ÁREA")
 
-    codigo = leer_codigo()
+    while True:
+        codigo = leer_codigo("Código del área (1-999, C=cancelar): ",
+                             permitir_cancelar=True)
+        if codigo is None:
+            print("Registro de área cancelado.")
+            return
 
-    if buscar_area(codigo) != -1:
-        print("Error: ya existe un área con ese código.")
+        if buscar_area(codigo) != -1:
+            print("Error: ya existe un área con ese código. Intente de nuevo.")
+            continue
+
+        if not confirmar_dato("el código", codigo):
+            print("Registro de área cancelado.")
+            return
+        break
+
+    nombre = leer_texto(
+        "Nombre del área (1-40 caracteres, C=cancelar): ",
+        1, 40, permitir_cancelar=True
+    )
+    if nombre is None:
+        print("Registro de área cancelado.")
         return
 
-    while True:
-        nombre = input("Nombre del área (1-40 caracteres): ").strip()
-
-        if 1 <= len(nombre) <= 40:
-            break
-
-        print("Error: el nombre debe tener entre 1 y 40 caracteres.")
+    if not confirmar_dato("el nombre", nombre):
+        print("Registro de área cancelado.")
+        return
 
     areas.append((codigo, nombre))
     print("Área registrada correctamente.")
 
 
-def consultar_areas():
-    """Muestra todas las áreas registradas."""
+def consultar_areas(mostrar_detalle=True):
+    """Lista las áreas y permite consultar una por código."""
     print("\nCONSULTAR ÁREAS")
 
     if not areas:
@@ -180,6 +295,34 @@ def consultar_areas():
     for codigo, nombre in areas:
         print(f"{codigo:<10} {nombre}")
 
+    if not mostrar_detalle:
+        return
+
+    while True:
+        entrada = input(
+            "\nCódigo del área para ver su detalle (A=terminar): "
+        ).strip()
+        if entrada.upper() == "A":
+            return
+        if not es_numero_ascii(entrada):
+            print("Ingrese un código numérico o A para terminar.")
+            continue
+
+        codigo = int(entrada)
+        posicion = buscar_area(codigo)
+        if posicion == -1:
+            print("No existe un área con ese código.")
+            continue
+
+        print(f"Área: {areas[posicion][1]} (código {codigo})")
+        opcion = input(
+            "A=ACEPTAR esta consulta, C=seleccionar otra área: "
+        ).strip().upper()
+        if opcion == "A":
+            return
+        if opcion != "C":
+            print("Opción no válida.")
+
 
 def modificar_area():
     """Modifica el nombre de un área existente."""
@@ -189,7 +332,11 @@ def modificar_area():
         print("No hay áreas para modificar.")
         return
 
-    codigo = leer_codigo()
+    codigo = leer_codigo("Código del área (C=cancelar): ",
+                         permitir_cancelar=True)
+    if codigo is None:
+        print("Modificación cancelada.")
+        return
     posicion = buscar_area(codigo)
 
     if posicion == -1:
@@ -199,15 +346,21 @@ def modificar_area():
     nombre_actual = areas[posicion][1]
     print(f"Nombre actual: {nombre_actual}")
 
-    while True:
-        nuevo_nombre = input(
-            "Nuevo nombre (1-40 caracteres): "
-        ).strip()
+    nuevo_nombre = leer_texto(
+        "Nuevo nombre (Enter=conservar, C=cancelar): ",
+        1, 40, valor_actual=nombre_actual, permitir_cancelar=True
+    )
+    if nuevo_nombre is None:
+        print("Modificación cancelada.")
+        return
 
-        if 1 <= len(nuevo_nombre) <= 40:
-            break
+    if nuevo_nombre == nombre_actual:
+        print("El nombre se conserva sin cambios.")
+        return
 
-        print("Error: el nombre debe tener entre 1 y 40 caracteres.")
+    if not confirmar_dato("el nuevo nombre", nuevo_nombre):
+        print("Modificación cancelada.")
+        return
 
     areas[posicion] = (codigo, nuevo_nombre)
     print("Área modificada correctamente.")
@@ -223,7 +376,11 @@ def eliminar_area():
         print("No hay áreas para eliminar.")
         return
 
-    codigo = leer_codigo()
+    codigo = leer_codigo("Código del área (C=cancelar): ",
+                         permitir_cancelar=True)
+    if codigo is None:
+        print("Eliminación cancelada.")
+        return
     posicion = buscar_area(codigo)
 
     if posicion == -1:
@@ -236,17 +393,20 @@ def eliminar_area():
         )
         return
 
+    print(f"Área seleccionada: {areas[posicion][1]} (código {codigo})")
     confirmacion = input(
-        f"¿Desea eliminar el área {areas[posicion][1]}? (S/N): "
+        "¿Eliminar esta área? (A=aceptar/C=cancelar): "
     ).strip().upper()
 
-    if confirmacion == "S":
+    if confirmacion == "A":
         areas.pop(posicion)
         if area_predeterminada == codigo:
             area_predeterminada = None
         print("Área eliminada correctamente.")
-    else:
+    elif confirmacion == "C":
         print("Operación cancelada.")
+    else:
+        print("Opción no válida; el área no se eliminó.")
 
 
 def menu_areas():
@@ -278,78 +438,87 @@ def menu_areas():
 
 
 def configuracion():
-    """Permite configurar el área y tipo de teléfono predeterminados."""
+    """Actualiza en una sola operación los valores predeterminados."""
 
     global area_predeterminada, tipo_telefono_predeterminado
 
-    while True:
-        print("\nCONFIGURACIÓN DE LISTA DE CONTACTOS")
-        print("1. Seleccionar área predeterminada")
-        print("2. Seleccionar tipo de teléfono predeterminado")
-        print("3. Consultar configuración actual")
-        print("0. Volver al menú principal")
+    print("\nCONFIGURACIÓN DE LISTA DE CONTACTOS")
+    if area_predeterminada is None:
+        area_actual = "No configurada"
+    else:
+        posicion = buscar_area(area_predeterminada)
+        area_actual = (
+            areas[posicion][1] if posicion != -1 else "No disponible"
+        )
+    tipo_actual = nombre_tipo_telefono(tipo_telefono_predeterminado)
+    if tipo_actual == "Desconocido":
+        tipo_actual = "No configurado"
 
-        opcion = input("Seleccione una opción: ").strip()
+    print(f"Área predeterminada actual: {area_actual}")
+    print(f"Tipo de teléfono actual: {tipo_actual}")
 
-        match opcion:
-            case "1":
-                if not areas:
-                    print("Primero debe registrar al menos un área.")
-                    continue
+    nueva_area = area_predeterminada
+    nueva_tipo = tipo_telefono_predeterminado
 
-                consultar_areas()
-                codigo = leer_codigo(
-                    "Código del área predeterminada: "
-                )
-                posicion = buscar_area(codigo)
-
-                if posicion == -1:
-                    print("Error: el área no existe.")
-                else:
-                    area_predeterminada = codigo
-                    print("Área predeterminada configurada.")
-
-            case "2":
-                print("\nTIPOS DE TELÉFONO")
-                for codigo, nombre in TIPOS_TELEFONO:
-                    print(f"{codigo}. {nombre}")
-
-                tipo = input(
-                    "Seleccione el tipo predeterminado: "
-                ).strip().upper()
-
-                if nombre_tipo_telefono(tipo) != "Desconocido":
-                    tipo_telefono_predeterminado = tipo
-                    print("Tipo de teléfono configurado.")
-                else:
-                    print("Error: tipo de teléfono no válido.")
-
-            case "3":
-                print("\nCONFIGURACIÓN ACTUAL")
-
-                if area_predeterminada is None:
-                    print("Área predeterminada: no configurada.")
-                else:
-                    posicion = buscar_area(area_predeterminada)
-                    if posicion != -1:
-                        print(
-                            "Área predeterminada:",
-                            areas[posicion][1]
-                        )
-
-                if tipo_telefono_predeterminado is None:
-                    print("Tipo de teléfono: no configurado.")
-                else:
-                    print(
-                        "Tipo de teléfono:",
-                        nombre_tipo_telefono(tipo_telefono_predeterminado)
-                    )
-
-            case "0":
+    if areas:
+        consultar_areas(mostrar_detalle=False)
+        while True:
+            entrada = input(
+                "Nuevo código de área (Enter=conservar, C=cancelar): "
+            ).strip()
+            if entrada.upper() == "C":
+                print("Configuración cancelada.")
+                return
+            if entrada == "":
                 break
+            if not es_numero_ascii(entrada):
+                print("Ingrese únicamente dígitos ASCII.")
+                continue
+            codigo = int(entrada)
+            if buscar_area(codigo) == -1:
+                print("El área no existe. Intente de nuevo.")
+                continue
+            nueva_area = codigo
+            break
+    else:
+        print("No hay áreas registradas; se conservará el valor actual.")
 
-            case _:
-                print("Opción no válida.")
+    print("\nTIPOS DE TELÉFONO")
+    for codigo, nombre in TIPOS_TELEFONO:
+        print(f"{codigo}. {nombre}")
+
+    while True:
+        entrada = input(
+            "Nuevo tipo (Enter=conservar, 0=cancelar): "
+        ).strip().upper()
+        if entrada == "0":
+            print("Configuración cancelada.")
+            return
+        if entrada == "":
+            break
+        if nombre_tipo_telefono(entrada) == "Desconocido":
+            print("Tipo de teléfono no válido. Intente de nuevo.")
+            continue
+        nueva_tipo = entrada
+        break
+
+    area_propuesta = (
+        str(nueva_area) if nueva_area is not None else "No configurada"
+    )
+    tipo_propuesto = nombre_tipo_telefono(nueva_tipo)
+    if tipo_propuesto == "Desconocido":
+        tipo_propuesto = "No configurado"
+
+    print(f"Configuración propuesta: área {area_propuesta}, tipo {tipo_propuesto}.")
+    confirmacion = input("¿Guardar la configuración? (A/C): ").strip().upper()
+    if confirmacion == "A":
+        area_predeterminada = nueva_area
+        tipo_telefono_predeterminado = nueva_tipo
+        print("Configuración guardada.")
+    elif confirmacion == "C":
+        print("Configuración cancelada; no se realizaron cambios.")
+    else:
+        print("Opción no válida; no se realizaron cambios.")
 
 def agregar_contacto():
     """Registra un contacto y valida sus datos."""
@@ -360,10 +529,7 @@ def agregar_contacto():
         print("Primero debe registrar al menos un área.")
         return
 
-    telefono = leer_telefono()
-
-    consultar_areas()
-
+    consultar_areas(mostrar_detalle=False)
     area_sugerida = (
         area_predeterminada
         if buscar_area(area_predeterminada) != -1
@@ -374,83 +540,109 @@ def agregar_contacto():
         mensaje_codigo += f" [{area_sugerida}]"
 
     while True:
-        entrada = input(f"{mensaje_codigo}: ").strip()
+        telefono = leer_telefono(permitir_cancelar=True)
+        if telefono is None:
+            print("Registro de contacto cancelado.")
+            return
+        if not confirmar_dato("el teléfono", telefono):
+            print("Registro de contacto cancelado.")
+            return
 
-        if entrada == "" and area_sugerida is not None:
-            codigo_area = area_sugerida
+        while True:
+            entrada = input(
+                f"{mensaje_codigo} (C=cancelar): "
+            ).strip()
+            if entrada.upper() == "C":
+                print("Registro de contacto cancelado.")
+                return
+            if entrada == "" and area_sugerida is not None:
+                codigo_area = area_sugerida
+            elif not es_numero_ascii(entrada):
+                print("Ingrese un código numérico ASCII.")
+                continue
+            else:
+                codigo_area = int(entrada)
+
+            if buscar_area(codigo_area) == -1:
+                print("El área no existe. Intente de nuevo.")
+                continue
             break
 
-        if not entrada.isdigit():
-            print("Error: ingrese un código numérico.")
+        if not confirmar_dato("el código del área", codigo_area):
+            print("Registro de contacto cancelado.")
+            return
+
+        if buscar_contacto(telefono, codigo_area) != -1:
+            print(
+                "Ya existe un contacto con ese teléfono y área. "
+                "Ingrese nuevamente el teléfono."
+            )
             continue
-
-        codigo_area = int(entrada)
-
-        if buscar_area(codigo_area) == -1:
-            print("Error: el área no existe.")
-            continue
-
         break
 
-    if buscar_contacto(telefono, codigo_area) != -1:
-        print("Error: ya existe un contacto con ese teléfono y área.")
+    sugerido = tipo_telefono_predeterminado
+    if nombre_tipo_telefono(sugerido) != "Desconocido":
+        while True:
+            entrada = input(
+                f"Tipo (M/C/T/O) [{sugerido}], 0=cancelar: "
+            ).strip().upper()
+            if entrada == "0":
+                print("Registro de contacto cancelado.")
+                return
+            tipo = entrada or sugerido
+            if nombre_tipo_telefono(tipo) != "Desconocido":
+                break
+            print("Tipo de teléfono no válido. Intente de nuevo.")
+    else:
+        tipo = leer_tipo_telefono(permitir_cancelar=True)
+        if tipo is None:
+            print("Registro de contacto cancelado.")
+            return
+    if not confirmar_dato("el tipo de teléfono", nombre_tipo_telefono(tipo)):
+        print("Registro de contacto cancelado.")
         return
 
-    if nombre_tipo_telefono(tipo_telefono_predeterminado) != "Desconocido":
-        sugerido = tipo_telefono_predeterminado
-        entrada = input(
-            f"Tipo de teléfono (M/C/T/O) [{sugerido}]: "
-        ).strip().upper()
+    nombre = leer_texto(
+        "Nombre completo (1-50 caracteres, C=cancelar): ",
+        1, 50, permitir_cancelar=True
+    )
+    if nombre is None or not confirmar_dato("el nombre", nombre):
+        print("Registro de contacto cancelado.")
+        return
 
-        if entrada == "":
-            tipo = sugerido
-        elif nombre_tipo_telefono(entrada) != "Desconocido":
-            tipo = entrada
-        else:
-            print("Error: tipo de teléfono no válido.")
-            return
-    else:
-        tipo = leer_tipo_telefono()
+    correo = leer_correo(permitir_cancelar=True)
+    if correo is None or not confirmar_dato("el correo", correo):
+        print("Registro de contacto cancelado.")
+        return
 
-    while True:
-        nombre = input("Nombre completo (1-50 caracteres): ").strip()
+    direccion = leer_texto(
+        "Dirección física (máximo 80 caracteres, C=cancelar): ",
+        0, 80, permitir_vacio=True, permitir_cancelar=True
+    )
+    if direccion is None or not confirmar_dato("la dirección", direccion):
+        print("Registro de contacto cancelado.")
+        return
 
-        if 1 <= len(nombre) <= 50:
-            break
+    fecha = leer_fecha(permitir_cancelar=True)
+    if fecha is None or not confirmar_dato("la fecha de nacimiento", fecha):
+        print("Registro de contacto cancelado.")
+        return
 
-        print("Error: el nombre debe tener entre 1 y 50 caracteres.")
+    pasatiempos = leer_texto(
+        "Pasatiempos (máximo 60 caracteres, C=cancelar): ",
+        0, 60, permitir_vacio=True, permitir_cancelar=True
+    )
+    if pasatiempos is None or not confirmar_dato("los pasatiempos", pasatiempos):
+        print("Registro de contacto cancelado.")
+        return
 
-    correo = leer_correo()
-
-    while True:
-        direccion = input(
-            "Dirección física (máximo 80 caracteres): "
-        ).strip()
-
-        if len(direccion) <= 80:
-            break
-
-        print("Error: la dirección no puede superar 80 caracteres.")
-
-    fecha = leer_fecha()
-
-    while True:
-        pasatiempos = input(
-            "Pasatiempos (máximo 60 caracteres): "
-        ).strip()
-
-        if len(pasatiempos) <= 60:
-            break
-
-        print("Error: los pasatiempos no pueden superar 60 caracteres.")
-
-    while True:
-        notas = input("Notas (máximo 60 caracteres): ").strip()
-
-        if len(notas) <= 60:
-            break
-
-        print("Error: las notas no pueden superar 60 caracteres.")
+    notas = leer_texto(
+        "Notas (máximo 60 caracteres, C=cancelar): ",
+        0, 60, permitir_vacio=True, permitir_cancelar=True
+    )
+    if notas is None or not confirmar_dato("las notas", notas):
+        print("Registro de contacto cancelado.")
+        return
 
     contacto = [
         telefono,
@@ -477,15 +669,22 @@ def modificar_contacto():
         print("No hay contactos registrados.")
         return
 
-    telefono = leer_telefono()
-    codigo_area = leer_codigo("Código del área del contacto: ")
+    telefono = leer_telefono(permitir_cancelar=True)
+    if telefono is None:
+        print("Modificación cancelada.")
+        return
+    codigo_area = leer_codigo(
+        "Código del área del contacto (C=cancelar): ",
+        permitir_cancelar=True
+    )
+    if codigo_area is None:
+        print("Modificación cancelada.")
+        return
     posicion = buscar_contacto(telefono, codigo_area)
 
     if posicion == -1:
         print("No se encontró el contacto.")
         return
-
-    contacto = contactos[posicion]
 
     while True:
         print("\n¿Qué dato desea modificar?")
@@ -502,42 +701,79 @@ def modificar_contacto():
 
         match opcion:
             case "1":
-                while True:
-                    nombre = input("Nuevo nombre: ").strip()
-                    if 1 <= len(nombre) <= 50:
-                        contacto[3] = nombre
-                        break
-                    print("El nombre debe tener entre 1 y 50 caracteres.")
+                nuevo = leer_texto(
+                    "Nuevo nombre (Enter=conservar, C=volver): ",
+                    1, 50, valor_actual=contactos[posicion][3],
+                    permitir_cancelar=True
+                )
+                if nuevo is None:
+                    continue
+                if nuevo != contactos[posicion][3] and confirmar_dato(
+                    "el nuevo nombre", nuevo
+                ):
+                    contactos[posicion][3] = nuevo
 
             case "2":
-                contacto[2] = leer_tipo_telefono()
+                nuevo = leer_tipo_telefono(
+                    permitir_cancelar=True,
+                    valor_actual=contactos[posicion][2]
+                )
+                if nuevo is not None and nuevo != contactos[posicion][2]:
+                    if confirmar_dato(
+                        "el nuevo tipo", nombre_tipo_telefono(nuevo)
+                    ):
+                        contactos[posicion][2] = nuevo
 
             case "3":
-                contacto[4] = leer_correo()
+                nuevo = leer_correo(
+                    permitir_cancelar=True,
+                    valor_actual=contactos[posicion][4]
+                )
+                if nuevo is not None and nuevo != contactos[posicion][4]:
+                    if confirmar_dato("el nuevo correo", nuevo):
+                        contactos[posicion][4] = nuevo
 
             case "4":
-                direccion = input("Nueva dirección: ").strip()
-                if len(direccion) <= 80:
-                    contacto[5] = direccion
-                else:
-                    print("La dirección no puede superar 80 caracteres.")
+                nuevo = leer_texto(
+                    "Nueva dirección (Enter=conservar, C=volver): ",
+                    0, 80, permitir_vacio=True,
+                    valor_actual=contactos[posicion][5],
+                    permitir_cancelar=True
+                )
+                if nuevo is not None and nuevo != contactos[posicion][5]:
+                    if confirmar_dato("la nueva dirección", nuevo):
+                        contactos[posicion][5] = nuevo
 
             case "5":
-                contacto[6] = leer_fecha()
+                nuevo = leer_fecha(
+                    permitir_cancelar=True,
+                    valor_actual=contactos[posicion][6]
+                )
+                if nuevo is not None and nuevo != contactos[posicion][6]:
+                    if confirmar_dato("la nueva fecha", nuevo):
+                        contactos[posicion][6] = nuevo
 
             case "6":
-                pasatiempos = input("Nuevos pasatiempos: ").strip()
-                if len(pasatiempos) <= 60:
-                    contacto[7] = pasatiempos
-                else:
-                    print("Máximo 60 caracteres.")
+                nuevo = leer_texto(
+                    "Nuevos pasatiempos (Enter=conservar, C=volver): ",
+                    0, 60, permitir_vacio=True,
+                    valor_actual=contactos[posicion][7],
+                    permitir_cancelar=True
+                )
+                if nuevo is not None and nuevo != contactos[posicion][7]:
+                    if confirmar_dato("los nuevos pasatiempos", nuevo):
+                        contactos[posicion][7] = nuevo
 
             case "7":
-                notas = input("Nuevas notas: ").strip()
-                if len(notas) <= 60:
-                    contacto[8] = notas
-                else:
-                    print("Máximo 60 caracteres.")
+                nuevo = leer_texto(
+                    "Nuevas notas (Enter=conservar, C=volver): ",
+                    0, 60, permitir_vacio=True,
+                    valor_actual=contactos[posicion][8],
+                    permitir_cancelar=True
+                )
+                if nuevo is not None and nuevo != contactos[posicion][8]:
+                    if confirmar_dato("las nuevas notas", nuevo):
+                        contactos[posicion][8] = nuevo
 
             case "0":
                 print("Modificación finalizada.")
@@ -545,6 +781,36 @@ def modificar_contacto():
 
             case _:
                 print("Opción no válida.")
+
+
+def consultar_contacto():
+    """Busca y muestra un contacto por teléfono y código de área."""
+    print("\nCONSULTAR CONTACTO")
+
+    if not contactos:
+        print("No hay contactos registrados.")
+        return
+
+    while True:
+        telefono = leer_telefono(permitir_cancelar=True)
+        if telefono is None:
+            print("Consulta cancelada.")
+            return
+        codigo_area = leer_codigo(
+            "Código del área del contacto (C=cancelar): ",
+            permitir_cancelar=True
+        )
+        if codigo_area is None:
+            print("Consulta cancelada.")
+            return
+
+        posicion = buscar_contacto(telefono, codigo_area)
+        if posicion != -1:
+            mostrar_contacto(contactos[posicion])
+            input("Presione Enter para aceptar y volver...")
+            return
+
+        print("No se encontró el contacto. Intente nuevamente o cancele.")
 
 
 def eliminar_contacto():
@@ -556,29 +822,41 @@ def eliminar_contacto():
         print("No hay contactos registrados.")
         return
 
-    telefono = leer_telefono()
-    codigo_area = leer_codigo("Código del área del contacto: ")
+    telefono = leer_telefono(permitir_cancelar=True)
+    if telefono is None:
+        print("Eliminación cancelada.")
+        return
+    codigo_area = leer_codigo(
+        "Código del área del contacto (C=cancelar): ",
+        permitir_cancelar=True
+    )
+    if codigo_area is None:
+        print("Eliminación cancelada.")
+        return
     posicion = buscar_contacto(telefono, codigo_area)
 
     if posicion == -1:
         print("No se encontró el contacto.")
         return
 
-    nombre = contactos[posicion][3]
+    print("\nContacto que se eliminará:")
+    mostrar_contacto(contactos[posicion])
     confirmacion = input(
-        f"¿Desea eliminar a {nombre}? (S/N): "
+        "¿Eliminar este contacto? (A=aceptar/C=cancelar): "
     ).strip().upper()
 
-    if confirmacion == "S":
+    if confirmacion == "A":
         referencia = (telefono, codigo_area)
         for contactos_grupo in contactos_por_grupo:
-            if referencia in contactos_grupo:
+            while referencia in contactos_grupo:
                 contactos_grupo.remove(referencia)
 
         contactos.pop(posicion)
         print("Contacto eliminado correctamente.")
-    else:
+    elif confirmacion == "C":
         print("Operación cancelada.")
+    else:
+        print("Opción no válida; el contacto no se eliminó.")
 
 
 def menu_contactos():
@@ -598,7 +876,7 @@ def menu_contactos():
             case "1":
                 agregar_contacto()
             case "2":
-                lista_contactos()
+                consultar_contacto()
             case "3":
                 modificar_contacto()
             case "4":
@@ -623,14 +901,20 @@ def buscar_grupo(nombre):
 def crear_grupo():
     """Crea un grupo con un nombre único."""
 
-    nombre = input("Nombre del grupo (1-40 caracteres): ").strip()
+    while True:
+        nombre = leer_texto(
+            "Nombre del grupo (1-40 caracteres, C=cancelar): ",
+            1, 40, permitir_cancelar=True
+        )
+        if nombre is None:
+            print("Creación de grupo cancelada.")
+            return
+        if buscar_grupo(nombre) == -1:
+            break
+        print("Ya existe un grupo con ese nombre. Intente nuevamente.")
 
-    if not 1 <= len(nombre) <= 40:
-        print("El nombre debe tener entre 1 y 40 caracteres.")
-        return
-
-    if buscar_grupo(nombre) != -1:
-        print("Ya existe un grupo con ese nombre.")
+    if not confirmar_dato("el nombre del grupo", nombre):
+        print("Creación de grupo cancelada.")
         return
 
     grupos.append(nombre)
@@ -645,22 +929,47 @@ def modificar_grupo():
         return
 
     consultar_grupos()
-    nombre_actual = input("\nNombre del grupo que desea modificar: ").strip()
+    nombre_actual = input(
+        "\nNombre del grupo que desea modificar (C=cancelar): "
+    ).strip()
+    if nombre_actual.upper() == "C":
+        print("Modificación cancelada.")
+        return
+
     posicion = buscar_grupo(nombre_actual)
 
     if posicion == -1:
         print("No existe un grupo con ese nombre.")
         return
 
-    nuevo_nombre = input("Nuevo nombre del grupo (1-40 caracteres): ").strip()
+    nuevo_nombre = leer_texto(
+        "Nuevo nombre (Enter=conservar, C=cancelar): ",
+        1, 40, valor_actual=grupos[posicion], permitir_cancelar=True
+    )
+    if nuevo_nombre is None:
+        print("Modificación cancelada.")
+        return
 
-    if not 1 <= len(nuevo_nombre) <= 40:
-        print("El nombre debe tener entre 1 y 40 caracteres.")
+    if nuevo_nombre == grupos[posicion]:
+        print("El nombre se conserva sin cambios.")
+        return
+
+    if not confirmar_dato("el nuevo nombre", nuevo_nombre):
+        print("Modificación cancelada.")
         return
 
     posicion_existente = buscar_grupo(nuevo_nombre)
     if posicion_existente != -1 and posicion_existente != posicion:
-        print("Ya existe un grupo con ese nombre.")
+        nombre_destino = grupos[posicion_existente]
+        for referencia in contactos_por_grupo[posicion]:
+            if referencia not in contactos_por_grupo[posicion_existente]:
+                contactos_por_grupo[posicion_existente].append(referencia)
+        grupos.pop(posicion)
+        contactos_por_grupo.pop(posicion)
+        print(
+            f"Grupo fusionado con «{nombre_destino}»; "
+            "sus contactos se combinaron sin duplicados."
+        )
         return
 
     grupos[posicion] = nuevo_nombre
@@ -702,25 +1011,44 @@ def agregar_contacto_a_grupo():
         return
 
     consultar_grupos()
-    nombre = input("\nNombre del grupo: ").strip()
+    nombre = input("\nNombre del grupo (C=cancelar): ").strip()
+    if nombre.upper() == "C":
+        print("Asociación cancelada.")
+        return
     posicion_grupo = buscar_grupo(nombre)
 
     if posicion_grupo == -1:
         print("No existe un grupo con ese nombre.")
         return
 
-    consultar_areas()
-    telefono = leer_telefono()
-    codigo_area = leer_codigo("Código del área del contacto: ")
+    while True:
+        telefono = leer_telefono(permitir_cancelar=True)
+        if telefono is None:
+            print("Asociación cancelada.")
+            return
+        codigo_area = leer_codigo(
+            "Código del área del contacto (C=cancelar): ",
+            permitir_cancelar=True
+        )
+        if codigo_area is None:
+            print("Asociación cancelada.")
+            return
 
-    if buscar_contacto(telefono, codigo_area) == -1:
-        print("No existe un contacto con ese teléfono y área.")
-        return
+        posicion_contacto = buscar_contacto(telefono, codigo_area)
+        if posicion_contacto != -1:
+            break
+        print("No existe ese contacto. Intente nuevamente o cancele.")
 
     referencia = (telefono, codigo_area)
 
     if referencia in contactos_por_grupo[posicion_grupo]:
         print("El contacto ya pertenece a ese grupo.")
+        return
+
+    print("\nContacto seleccionado:")
+    mostrar_contacto(contactos[posicion_contacto])
+    if not confirmar_dato("la asociación al grupo", grupos[posicion_grupo]):
+        print("Asociación cancelada.")
         return
 
     contactos_por_grupo[posicion_grupo].append(referencia)
@@ -735,19 +1063,41 @@ def quitar_contacto_de_grupo():
         return
 
     consultar_grupos()
-    nombre = input("\nNombre del grupo: ").strip()
+    nombre = input("\nNombre del grupo (C=cancelar): ").strip()
+    if nombre.upper() == "C":
+        print("Eliminación de asociación cancelada.")
+        return
     posicion_grupo = buscar_grupo(nombre)
 
     if posicion_grupo == -1:
         print("No existe un grupo con ese nombre.")
         return
 
-    telefono = leer_telefono()
-    codigo_area = leer_codigo("Código del área del contacto: ")
+    telefono = leer_telefono(permitir_cancelar=True)
+    if telefono is None:
+        print("Eliminación de asociación cancelada.")
+        return
+    codigo_area = leer_codigo(
+        "Código del área del contacto (C=cancelar): ",
+        permitir_cancelar=True
+    )
+    if codigo_area is None:
+        print("Eliminación de asociación cancelada.")
+        return
     referencia = (telefono, codigo_area)
 
     if referencia not in contactos_por_grupo[posicion_grupo]:
         print("Ese contacto no pertenece al grupo.")
+        return
+
+    posicion_contacto = buscar_contacto(telefono, codigo_area)
+    if posicion_contacto != -1:
+        mostrar_contacto(contactos[posicion_contacto])
+    confirmacion = input(
+        "¿Quitar este contacto del grupo? (A=aceptar/C=cancelar): "
+    ).strip().upper()
+    if confirmacion != "A":
+        print("Operación cancelada.")
         return
 
     contactos_por_grupo[posicion_grupo].remove(referencia)
@@ -762,7 +1112,12 @@ def eliminar_grupo():
         return
 
     consultar_grupos()
-    nombre = input("\nNombre del grupo que desea eliminar: ").strip()
+    nombre = input(
+        "\nNombre del grupo que desea eliminar (C=cancelar): "
+    ).strip()
+    if nombre.upper() == "C":
+        print("Eliminación cancelada.")
+        return
     posicion = buscar_grupo(nombre)
 
     if posicion == -1:
@@ -770,15 +1125,17 @@ def eliminar_grupo():
         return
 
     confirmacion = input(
-        f"¿Desea eliminar el grupo {grupos[posicion]}? (S/N): "
+        f"¿Eliminar el grupo «{grupos[posicion]}»? (A/C): "
     ).strip().upper()
 
-    if confirmacion == "S":
+    if confirmacion == "A":
         grupos.pop(posicion)
         contactos_por_grupo.pop(posicion)
         print("Grupo eliminado correctamente.")
-    else:
+    elif confirmacion == "C":
         print("Operación cancelada.")
+    else:
+        print("Opción no válida; el grupo no se eliminó.")
 
 
 def menu_grupos():
@@ -806,6 +1163,8 @@ def menu_grupos():
             case "4":
                 quitar_contacto_de_grupo()
             case "5":
+                modificar_grupo()
+            case "6":
                 eliminar_grupo()
             case "0":
                 break
@@ -823,7 +1182,7 @@ def coincide_filtro(valor, filtro):
 
     patron = re.escape(filtro).replace("%", ".*")
 
-    return re.search(
+    return re.fullmatch(
         patron,
         str(valor),
         flags=re.IGNORECASE
@@ -894,7 +1253,17 @@ def generar_pdf(contactos_filtrados):
     ]))
 
     contenido.append(tabla)
-    documento.build(contenido)
+    try:
+        documento.build(contenido)
+    except PermissionError:
+        print(
+            "No se pudo guardar contactos.pdf. Cierre el archivo PDF si está "
+            "abierto e intente nuevamente."
+        )
+        return
+    except OSError as error:
+        print(f"No se pudo generar contactos.pdf: {error}")
+        return
 
     print("PDF generado: contactos.pdf")
 
@@ -982,7 +1351,17 @@ def lista_contactos():
         print(f"Pasatiempos: {pasatiempos}")
         print(f"Notas: {notas}")
 
-    generar_pdf(contactos_filtrados)
+    while True:
+        opcion_pdf = input(
+            "\n¿Desea generar el PDF de estos contactos? (A/C): "
+        ).strip().upper()
+        if opcion_pdf == "A":
+            generar_pdf(contactos_filtrados)
+            break
+        if opcion_pdf == "C":
+            print("Generación del PDF cancelada.")
+            break
+        print("Opción no válida. Escriba A para generar o C para cancelar.")
 
 def ayuda():
 
@@ -999,25 +1378,38 @@ def ayuda():
 DESCRIPCIÓN
 Este programa permite administrar áreas, configurar la lista
 de contactos, registrar contactos, crear grupos y consultar
-información mediante filtros.
+contactos por sus datos. También permite filtrar la lista y
+generar un PDF.
 
 MENÚ PRINCIPAL
 1. Registrar áreas:
-   Permite agregar, consultar, modificar y eliminar áreas.
+   Agrega áreas con código único, consulta por código, modifica
+   el nombre y elimina áreas que no tengan contactos asociados.
+   En los formularios puede escribir C para cancelar. Para
+   conservar un valor durante una modificación, presione Enter.
 
 2. Configuración de lista de contactos:
-   Permite establecer el área y el tipo de teléfono
-   predeterminados.
+   Configura en una pantalla el área y el tipo de teléfono
+   predeterminados. Enter conserva el valor actual; A guarda y
+   C descarta la configuración propuesta.
 
 3. Registrar contactos:
-   Permite agregar, consultar, modificar y eliminar contactos.
+   Agrega contactos con validación de datos, consulta por
+   teléfono y código de área, modifica campos y elimina
+   contactos después de mostrar sus datos. Las modificaciones
+   se confirman campo por campo. Al eliminar un contacto también
+   se quitan sus referencias de los grupos.
 
 4. Administrar grupos de contactos:
-   Permite crear grupos y administrar los contactos asociados.
+   Permite crear, consultar, renombrar, fusionar y eliminar
+   grupos, además de agregar o quitar contactos. Al renombrar
+   hacia un grupo existente, se fusionan las asociaciones sin
+   duplicar contactos. Quitar una asociación requiere confirmar.
 
 5. Lista de contactos:
-   Permite consultar los contactos mediante filtros y generar
-   un archivo PDF con los resultados.
+   Filtra la lista y ofrece generar contactos.pdf con los
+   resultados. La generación del PDF se puede aceptar o
+   cancelar.
 
 6. Ayuda:
    Muestra este manual de usuario.
@@ -1029,21 +1421,36 @@ MENÚ PRINCIPAL
    Termina la ejecución del programa.
 
 USO DE LOS FILTROS
-Al consultar la lista de contactos, podés escribir un valor
-en los filtros disponibles o dejarlos vacíos para no filtrar
-por ese criterio.
+Al consultar la lista, escriba un valor para filtrar por nombre,
+teléfono, código de área, fecha, pasatiempos o grupo. Deje el
+campo vacío para no aplicar ese criterio.
 
-El símbolo % funciona como comodín para representar cero o más caracteres. Todas las búsquedas de texto en los filtros no distinguen entre mayúsculas y minúsculas, independientemente de si se utiliza el comodín o no.
+El símbolo % representa cero o más caracteres. Sin comodines,
+el valor debe coincidir exactamente. Las búsquedas no distinguen
+entre mayúsculas y minúsculas.
+
+VALIDACIÓN
+Los códigos de área aceptan dígitos ASCII entre 1 y 999. Los
+teléfonos deben contener entre 5 y 12 dígitos ASCII. Se valida
+el formato del correo, las fechas reales y los límites de
+longitud de los campos de texto. Escriba C en los campos que
+ofrecen cancelación para abandonar la operación. En el selector
+de tipo telefónico, C es un tipo válido (Casa), por lo que 0
+se usa para cancelar esa selección.
 
 GENERACIÓN DE PDF
-Cuando una búsqueda encuentra contactos, el programa genera
-el archivo contactos.pdf en el directorio de ejecución.
+Cuando una búsqueda encuentra contactos, el programa pregunta
+si desea generar contactos.pdf en el directorio de ejecución.
+Si el archivo está abierto y no se puede sobrescribir, ciérrelo
+y vuelva a intentar.
 
 RECOMENDACIONES
-- Registrá las áreas antes de asignarlas a los contactos.
-- Verificá los datos antes de confirmar un registro.
-- Utilizá los filtros para localizar información específica.
-- Conservá una copia del archivo PDF cuando sea necesario.
+- Registre las áreas antes de asignarlas a los contactos.
+- Configure los valores predeterminados para agilizar el alta.
+- Confirme cada dato antes de guardarlo.
+- Utilice la consulta por teléfono y área para ver un contacto.
+- Use los filtros para localizar información específica.
+- Cierre el PDF antes de generar una nueva versión.
 
 """)
 
