@@ -779,7 +779,7 @@ def coincide_filtro(valor, filtro):
 
 
 
-def generar_pdf(contactos_filtrados, tipos):
+def generar_pdf(contactos_filtrados):
     """Genera un PDF con los contactos seleccionados."""
 
     documento = SimpleDocTemplate(
@@ -819,7 +819,7 @@ def generar_pdf(contactos_filtrados, tipos):
             nombre,
             str(telefono),
             f"{nombre_area} ({codigo_area})",
-            tipos.get(tipo, tipo),
+            nombre_tipo_telefono(tipo),
             correo,
             direccion,
             fecha,
@@ -909,13 +909,6 @@ def lista_contactos():
         print("No se encontraron contactos con esos filtros.")
         return
 
-    tipos = {
-        "M": "Móvil",
-        "C": "Casa",
-        "T": "Trabajo",
-        "O": "Otro"
-    }
-
     for numero, contacto in enumerate(contactos_filtrados, start=1):
         telefono, codigo_area, tipo, nombre, correo, direccion, fecha, pasatiempos, notas = contacto
 
@@ -930,14 +923,14 @@ def lista_contactos():
         print(f"Nombre: {nombre}")
         print(f"Teléfono: {telefono}")
         print(f"Área: {nombre_area} (código {codigo_area})")
-        print(f"Tipo de teléfono: {tipos.get(tipo, tipo)}")
+        print(f"Tipo de teléfono: {nombre_tipo_telefono(tipo)}")
         print(f"Correo: {correo}")
         print(f"Dirección: {direccion}")
         print(f"Fecha de nacimiento: {fecha}")
         print(f"Pasatiempos: {pasatiempos}")
         print(f"Notas: {notas}")
 
-    generar_pdf(contactos_filtrados, tipos)
+    generar_pdf(contactos_filtrados)
 
 def ayuda():
 
