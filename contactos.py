@@ -1,7 +1,6 @@
 
 """
 Lista Digital de Contactos
-Etapa 1: menú principal y administración de áreas.
 """
 import re
 from reportlab.lib import colors
