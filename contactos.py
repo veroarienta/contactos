@@ -586,32 +586,6 @@ def menu_contactos():
 
 
 
-def menu_grupos():
-    """Muestra el menú de administración de grupos."""
-
-    while True:
-        print("\nADMINISTRACIÓN DE GRUPOS")
-        print("1. Crear grupo")
-        print("2. Consultar grupos")
-        print("3. Agregar contacto a grupo")
-        print("4. Quitar contacto de grupo")
-        print("0. Volver al menú principal")
-
-        opcion = input("Seleccione una opción: ").strip()
-
-        match opcion:
-            case "1":
-                crear_grupo()
-            case "2":
-                consultar_grupos()
-            case "3":
-                agregar_contacto_a_grupo()
-            case "4":
-                quitar_contacto_de_grupo()
-            case "0":
-                break
-            case _:
-                print("Opción no válida.")                
 
 
 def buscar_grupo(nombre):
@@ -785,10 +759,6 @@ def menu_grupos():
                 print("Opción no válida.")
 
 
-def coincide_filtro(valor, filtro):
-    """Compara un valor con un filtro que admite % como comodín."""
-
-    
 def coincide_filtro(valor, filtro):
     """Compara un valor con un filtro que admite % como comodín."""
 
