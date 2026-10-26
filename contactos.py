@@ -215,6 +215,8 @@ def modificar_area():
 
 def eliminar_area():
     """Elimina un área existente si no tiene contactos asociados."""
+    global area_predeterminada
+
     print("\nELIMINAR ÁREA")
 
     if not areas:
@@ -228,8 +230,11 @@ def eliminar_area():
         print("Error: no existe un área con ese código.")
         return
 
-    # La validación de contactos asociados se añadirá
-    # cuando implementemos el registro de contactos.
+    if any(contacto[1] == codigo for contacto in contactos):
+        print(
+            "No se puede eliminar el área porque tiene contactos asociados."
+        )
+        return
 
     confirmacion = input(
         f"¿Desea eliminar el área {areas[posicion][1]}? (S/N): "
@@ -237,6 +242,8 @@ def eliminar_area():
 
     if confirmacion == "S":
         areas.pop(posicion)
+        if area_predeterminada == codigo:
+            area_predeterminada = None
         print("Área eliminada correctamente.")
     else:
         print("Operación cancelada.")
@@ -357,8 +364,21 @@ def agregar_contacto():
 
     consultar_areas()
 
+    area_sugerida = (
+        area_predeterminada
+        if buscar_area(area_predeterminada) != -1
+        else None
+    )
+    mensaje_codigo = "Código del área"
+    if area_sugerida is not None:
+        mensaje_codigo += f" [{area_sugerida}]"
+
     while True:
-        entrada = input("Código del área: ").strip()
+        entrada = input(f"{mensaje_codigo}: ").strip()
+
+        if entrada == "" and area_sugerida is not None:
+            codigo_area = area_sugerida
+            break
 
         if not entrada.isdigit():
             print("Error: ingrese un código numérico.")
@@ -550,10 +570,12 @@ def eliminar_contacto():
     ).strip().upper()
 
     if confirmacion == "S":
-        contactos.pop(posicion)
+        referencia = (telefono, codigo_area)
+        for contactos_grupo in contactos_por_grupo:
+            if referencia in contactos_grupo:
+                contactos_grupo.remove(referencia)
 
-        # Si el contacto pertenece a grupos, también se quitará
-        # de ellos cuando implementemos esa funcionalidad.
+        contactos.pop(posicion)
         print("Contacto eliminado correctamente.")
     else:
         print("Operación cancelada.")
@@ -614,6 +636,35 @@ def crear_grupo():
     grupos.append(nombre)
     contactos_por_grupo.append([])
     print("Grupo creado correctamente.")
+
+
+def modificar_grupo():
+    """Modifica el nombre de un grupo existente."""
+    if not grupos:
+        print("No hay grupos para modificar.")
+        return
+
+    consultar_grupos()
+    nombre_actual = input("\nNombre del grupo que desea modificar: ").strip()
+    posicion = buscar_grupo(nombre_actual)
+
+    if posicion == -1:
+        print("No existe un grupo con ese nombre.")
+        return
+
+    nuevo_nombre = input("Nuevo nombre del grupo (1-40 caracteres): ").strip()
+
+    if not 1 <= len(nuevo_nombre) <= 40:
+        print("El nombre debe tener entre 1 y 40 caracteres.")
+        return
+
+    posicion_existente = buscar_grupo(nuevo_nombre)
+    if posicion_existente != -1 and posicion_existente != posicion:
+        print("Ya existe un grupo con ese nombre.")
+        return
+
+    grupos[posicion] = nuevo_nombre
+    print("Grupo modificado correctamente.")
 
 
 def consultar_grupos():
@@ -739,7 +790,8 @@ def menu_grupos():
         print("2. Consultar grupos")
         print("3. Agregar contacto a grupo")
         print("4. Quitar contacto de grupo")
-        print("5. Eliminar grupo")
+        print("5. Modificar grupo")
+        print("6. Eliminar grupo")
         print("0. Volver al menú principal")
 
         opcion = input("Seleccione una opción: ").strip()
