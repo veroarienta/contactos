@@ -4,6 +4,15 @@ Lista Digital de Contactos
 Etapa 1: menú principal y administración de áreas.
 """
 import re
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import (
+    SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+)
+from reportlab.lib.units import cm
+from xml.sax.saxutils import escape
+
 
 ############ VARIABLES GLOBALES ####################
 
@@ -777,10 +786,98 @@ def menu_grupos():
                 print("Opción no válida.")
 
 
+def coincide_filtro(valor, filtro):
+    """Compara un valor con un filtro que admite % como comodín."""
+
+    
+def coincide_filtro(valor, filtro):
+    """Compara un valor con un filtro que admite % como comodín."""
+
+    filtro = filtro.strip()
+
+    if filtro == "":
+        return True
+
+    patron = re.escape(filtro).replace("%", ".*")
+
+    return re.search(
+        patron,
+        str(valor),
+        flags=re.IGNORECASE
+    ) is not None
+
+
+
+def generar_pdf(contactos_filtrados, tipos):
+    """Genera un PDF con los contactos seleccionados."""
+
+    documento = SimpleDocTemplate(
+        "contactos.pdf",
+        pagesize=landscape(A4),
+        rightMargin=1 * cm,
+        leftMargin=1 * cm,
+        topMargin=1 * cm,
+        bottomMargin=1 * cm
+    )
+
+    estilos = getSampleStyleSheet()
+    contenido = [
+        Paragraph("Lista de contactos", estilos["Title"]),
+        Spacer(1, 0.4 * cm)
+    ]
+
+    encabezados = [
+        "Nombre", "Teléfono", "Área", "Tipo",
+        "Correo", "Dirección", "Nacimiento",
+        "Pasatiempos", "Notas"
+    ]
+
+    datos = [encabezados]
+
+    for contacto in contactos_filtrados:
+        telefono, codigo_area, tipo, nombre, correo, direccion, fecha, pasatiempos, notas = contacto
+
+        posicion_area = buscar_area(codigo_area)
+
+        if posicion_area != -1:
+            nombre_area = areas[posicion_area][1]
+        else:
+            nombre_area = "Área no disponible"
+
+        fila = [
+            nombre,
+            str(telefono),
+            f"{nombre_area} ({codigo_area})",
+            tipos.get(tipo, tipo),
+            correo,
+            direccion,
+            fecha,
+            pasatiempos,
+            notas
+        ]
+
+        datos.append([
+            Paragraph(escape(str(valor)), estilos["BodyText"])
+            for valor in fila
+        ])
+
+    tabla = Table(datos, repeatRows=1)
+
+    tabla.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("FONTSIZE", (0, 0), (-1, -1), 7),
+    ]))
+
+    contenido.append(tabla)
+    documento.build(contenido)
+
+    print("PDF generado: contactos.pdf")
 
 
 def lista_contactos():
-    """Muestra los contactos registrados."""
+    """Muestra y filtra los contactos y permite generar un PDF con ellos."""
 
     print("\nLISTA DE CONTACTOS")
 
@@ -788,21 +885,75 @@ def lista_contactos():
         print("No hay contactos registrados.")
         return
 
-    for numero, contacto in enumerate(contactos, start=1):
+    print("Dejá el filtro vacío para incluir cualquier valor.")
+    print("Podés usar % como comodín. Ejemplo: Ana%")
+
+    filtro_nombre = input("Filtrar por nombre: ")
+    filtro_telefono = input("Filtrar por teléfono: ")
+    filtro_area = input("Filtrar por área (código): ")
+    filtro_fecha = input("Filtrar por fecha de nacimiento: ")
+    filtro_pasatiempos = input("Filtrar por pasatiempos: ")
+    filtro_grupo = input("Filtrar por grupo: ")
+
+    contactos_filtrados = []
+
+    for contacto in contactos:
+        telefono, codigo_area, tipo, nombre, correo, direccion, fecha, pasatiempos, notas = contacto
+
+        if not coincide_filtro(nombre, filtro_nombre):
+            continue
+
+        if not coincide_filtro(telefono, filtro_telefono):
+            continue
+
+        if not coincide_filtro(codigo_area, filtro_area):
+            continue
+
+        if not coincide_filtro(fecha, filtro_fecha):
+            continue
+
+        if not coincide_filtro(pasatiempos, filtro_pasatiempos):
+            continue
+
+        if filtro_grupo.strip():
+            pertenece = False
+
+            for posicion, grupo in enumerate(grupos):
+                if coincide_filtro(grupo, filtro_grupo):
+                    if any(
+                        telefono_grupo == telefono
+                        and area_grupo == codigo_area
+                        for telefono_grupo, area_grupo
+                        in contactos_por_grupo[posicion]
+                    ):
+                        pertenece = True
+                        break
+
+            if not pertenece:
+                continue
+
+        contactos_filtrados.append(contacto)
+
+    if not contactos_filtrados:
+        print("No se encontraron contactos con esos filtros.")
+        return
+
+    tipos = {
+        "M": "Móvil",
+        "C": "Casa",
+        "T": "Trabajo",
+        "O": "Otro"
+    }
+
+    for numero, contacto in enumerate(contactos_filtrados, start=1):
         telefono, codigo_area, tipo, nombre, correo, direccion, fecha, pasatiempos, notas = contacto
 
         posicion_area = buscar_area(codigo_area)
+
         if posicion_area != -1:
             nombre_area = areas[posicion_area][1]
         else:
             nombre_area = "Área no disponible"
-
-        tipos = {
-            "M": "Móvil",
-            "C": "Casa",
-            "T": "Trabajo",
-            "O": "Otro"
-        }
 
         print(f"\nCONTACTO {numero}")
         print(f"Nombre: {nombre}")
@@ -815,6 +966,7 @@ def lista_contactos():
         print(f"Pasatiempos: {pasatiempos}")
         print(f"Notas: {notas}")
 
+    generar_pdf(contactos_filtrados, tipos)
 
 def ayuda():
     """Pendiente de implementación."""
