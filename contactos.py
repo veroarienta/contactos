@@ -214,6 +214,7 @@ def eliminar_area():
 
     # La validación de contactos asociados se añadirá
     # cuando implementemos el registro de contactos.
+
     confirmacion = input(
         f"¿Desea eliminar el área {areas[posicion][1]}? (S/N): "
     ).strip().upper()
@@ -252,8 +253,6 @@ def menu_areas():
             case _:
                 print("Opción no válida.")
 
-
-############ FUNCIONES PENDIENTES ####################
 
 def configuracion():
     """Permite configurar el área y tipo de teléfono predeterminados."""
